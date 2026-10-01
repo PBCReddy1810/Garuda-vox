@@ -1,0 +1,12 @@
+numpy
+scipy
+librosa
+soundfile
+pyyaml
+torch
+torchaudio
+pystoi
+torchmetrics
+onnx
+onnxruntime
+sounddevice

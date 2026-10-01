@@ -1,0 +1,8 @@
+paths:
+  clean_speech_dir: "data/raw/clean_speech"
+  noise_dir: "data/raw/noise"
+  output_dir: "data/processed/train"
+
+snr_levels: [-5, 0, 5, 10, 15]  # Signal-to-Noise Ratios in dB
+sample_rate: 16000 # Standard sample rate for speech processing
+audio_duration: 4.0 # Target chunk duration in seconds

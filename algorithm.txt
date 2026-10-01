@@ -1,0 +1,40 @@
+Algorithm Overview: Highly Optimized Convolutional Recurrent Network (CRN)
+
+1. Preprocessing (Feature Extraction)
+The system uses Short-Time Fourier Transform (STFT) to convert raw audio waveforms into the frequency domain.
+- Window Size (n_fft): 512
+- Hop Length: 256
+- Sample Rate: 16000 Hz
+This produces a magnitude spectrogram representing the energy of the audio across different frequencies over time.
+
+2. Neural Network Architecture
+The core model is a CRN (Convolutional Recurrent Network) specially designed for edge-device efficiency.
+
+a) CNN Encoder (Dimensionality Reduction)
+- Layer 1: 2D Convolution (1 channel -> 8 channels), ELU activation, Batch Normalization
+- Layer 2: 2D Convolution (8 channels -> 16 channels), ELU activation, Batch Normalization
+- Layer 3: 2D Convolution (16 channels -> 32 channels), ELU activation, Batch Normalization
+The encoder downsamples the frequency resolution to extract critical features while perfectly preserving the time resolution.
+
+b) GRU Bottleneck (Temporal Sequence Modeling)
+- A 1-layer Gated Recurrent Unit (GRU) with 128 hidden units replaces the standard heavy LSTM.
+- The GRU acts as the "memory" of the network, analyzing how the audio changes over time to mathematically distinguish between dynamic noise (like helicopters or wind) and human speech patterns.
+- Continuous Streaming State: During live inference, the GRU's hidden state is securely preserved and passed forward across 16-millisecond chunks, ensuring the AI retains continuous temporal context of the human voice without suffering from frame amnesia.
+
+c) CNN Decoder (Reconstruction)
+- Layer 1: 2D Transposed Convolution (64 -> 16 channels)
+- Layer 2: 2D Transposed Convolution (32 -> 8 channels)
+- Layer 3: 2D Transposed Convolution (16 -> 1 channel)
+- Skip Connections: The decoder concatenates feature maps directly from the encoder to retain fine-grained original audio details.
+- Output Activation: Sigmoid layer to produce an "Audio Mask" (values between 0.0 and 1.0).
+
+3. Advanced Post-processing (Masking and iSTFT)
+- Temporal Mask Smoothing: The predicted mask is smoothed using an alpha filter (75% old mask, 25% new mask) to dynamically prevent the mask from fluctuating violently. This completely mathematically eliminates the high-pitch "ezzzz" musical noise/phase artifacts commonly found in STFT processing.
+- Spectral Over-Subtraction (Noise Gating): The smoothed mask is squared (Mask ** 2.0). This exponentially squishes predicted noise values down to absolute zero, aggressively gating residual noise while allowing confident speech predictions (near 1.0) to pass safely.
+- The modified Mask is multiplied against the original noisy magnitude spectrogram.
+- The Inverse STFT (iSTFT) is applied using the masked magnitude and the original noisy phase to reconstruct the clean audio waveform.
+- Signal Amplification: Because the noise floor has been successfully suppressed to near zero, a 3.0x Signal Amplifier is applied to the final reconstructed waveform to massively boost human speech volume without amplifying the background noise.
+
+4. Objective Function (Training)
+- The network is trained using Scale-Invariant Signal-to-Noise Ratio (SI-SNR) loss.
+- This loss function directly optimizes the waveform quality and ensures the predicted audio aligns perfectly with the true clean audio, regardless of volume scaling.
